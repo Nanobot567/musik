@@ -117,7 +117,7 @@ function playdate.update()
                 dir = dir..files[curRow]
 
                 for i=1,#files do
-                    if string.find(files[i],"%.mp3") ~= nil or string.find(files[i],"%.wav") ~= nil then
+                    if string.find(files[i],"%.mp3") ~= nil or string.find(files[i],"%.pda") ~= nil then
                         table.insert(audioFiles,files[i])
                     end
                 end
@@ -134,9 +134,9 @@ function playdate.update()
                     -- end
                     onPlayingScreen = true
                 else
-                    if string.find(files[curRow],"%.mp3") ~= nil or string.find(files[curRow],"%.wav") ~= nil then
+                    if string.find(files[curRow],"%.mp3") ~= nil or string.find(files[curRow],"%.pda") ~= nil then
                         for i=1,#files do
-                            if string.find(files[curRow],"%.mp3") ~= nil or string.find(files[curRow],"%.wav") ~= nil then
+                            if string.find(files[curRow],"%.mp3") ~= nil or string.find(files[curRow],"%.pda") ~= nil then
                                 table.insert(audioFiles,files[i])
                             end
                         end
