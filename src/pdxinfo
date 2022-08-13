@@ -1,0 +1,7 @@
+name=musik
+author=nanobot567
+description=simple music player for playdate
+bundleID=com.nano.musik
+version=1.1
+buildNumber=232
+imagePath=SystemAssets
