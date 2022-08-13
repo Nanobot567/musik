@@ -28,12 +28,14 @@ local currentPos = 1
 audioLen = 0
 local darkMode = true
 
+print("Hey there, friend!")
+
 gfx.setColor(gfx.kColorWhite)
 
 local menu = playdate.getSystemMenu()
 
 function handleMode(str) -- add queue mode
-    print(str)
+    print("mode is now"..str)
     modeString = str
 
     if str == "shuffle" then
@@ -45,8 +47,6 @@ function handleMode(str) -- add queue mode
     else
         mode = 0
     end
-
-    print("did mode")
 end
 
 local playingMenuItem, error = menu:addMenuItem("now playing", function()
@@ -241,6 +241,9 @@ function handleSongEnd()
         end
     elseif mode == 1 then
         local randthing = math.random(1,#audioFiles)
+        while currentFileName == audioFiles[randthing] do
+            randthing = math.random(1,#audioFiles)
+        end
         if playdate.file.isdir(dir..audioFiles[randthing]) == false then
             currentFileName = audioFiles[randthing]
             currentAudio:load(dir..audioFiles[randthing])
