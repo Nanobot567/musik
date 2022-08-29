@@ -13,24 +13,35 @@ files = playdate.file.listFiles(dir, false)
 local playingGraphic = gfx.image.new("img/playing")
 local pausedGraphic = gfx.image.new("img/paused")
 
--- dosFnt = playdate.graphics.font.new("fnt/dos")
--- playdate.graphics.setFont(dosFnt)
+dosFnt = playdate.graphics.font.new("fnt/dos")
 
 local currentAudio = playdate.sound.fileplayer.new()
 local currentFilePath = ""
 local currentFileName = ""
-audioFiles = {}
-mode = 0 -- 0 is none, 1 is shuffle, 2 is loop folder, 3 is loop song
-local modeString = "none"
-onPlayingScreen = false
 local lastOffset = 0
 local currentPos = 1
-audioLen = 0
+local modeString = "none"
 local darkMode = true
+audioFiles = {}
+mode = 0 -- 0 is none, 1 is shuffle, 2 is loop folder, 3 is loop song
+screenMode = 0 -- 0 is files, 1 is playing, 2 is settings
+audioLen = 0
+keyTimer = nil
 
-print("Hey there, friend!")
+bgColor = gfx.kColorBlack
+color = gfx.kColorWhite
+dMColor1 = gfx.kDrawModeFillWhite
+dMColor2 = gfx.kDrawModeCopy
 
-gfx.setColor(gfx.kColorWhite)
+print("----------------------------------------------------")
+print("Hey there, friend! Have fun debugging / hacking my app! :D")
+print("----------------------------------------------------")
+
+gfx.setColor(color)
+gfx.clear(bgColor)
+gfx.setImageDrawMode(dMColor1)
+gfx.drawText("no files!",0,0)
+gfx.setImageDrawMode(dMColor2)
 
 local menu = playdate.getSystemMenu()
 
@@ -50,9 +61,30 @@ function handleMode(str) -- add queue mode
 end
 
 local playingMenuItem, error = menu:addMenuItem("now playing", function()
-    onPlayingScreen = not onPlayingScreen
+    if screenMode == 0 then
+        screenMode = 1
+    else
+        screenMode = 0
+    end
 end)
 local modeMenuItem, error = menu:addOptionsMenuItem("mode", {"none","shuffle","loop folder","loop one"}, "none", handleMode)
+local colorModeMenuItem, error = menu:addCheckmarkMenuItem("dark", darkMode, function ()
+    if darkMode == true then
+        bgColor = gfx.kColorWhite
+        color = gfx.kColorBlack
+        dMColor1 = gfx.kDrawModeCopy
+        dMColor2 = gfx.kDrawModeFillWhite
+        gfx.setColor(color)
+        darkMode = false
+    else
+        bgColor = gfx.kColorBlack
+        color = gfx.kColorWhite
+        dMColor1 = gfx.kDrawModeFillWhite
+        dMColor2 = gfx.kDrawModeCopy
+        gfx.setColor(color)
+        darkMode = true
+    end
+end)
 
 fileList = playdate.ui.gridview.new(0, 10)
 fileList.backgroundImage = playdate.graphics.nineSlice.new('img/scrollimg', 20, 23, 92, 20)
@@ -65,14 +97,15 @@ function fileList:drawCell(section, row, column, selected, x, y, width, height)
         if files[row] ~= nil then
             if selected then
                 gfx.fillRoundRect(x, y, width, 20, 4)
-                gfx.setImageDrawMode(gfx.kDrawModeCopy)
+                gfx.setImageDrawMode(dMColor2)
             else
-                gfx.setImageDrawMode(gfx.kDrawModeFillWhite)
+                gfx.setImageDrawMode(dMColor1)
             end
 
             gfx.drawText(files[row], x+4, y+2, width, height, nil, "...")
         end
 end
+
 
 if files[1] == nil then
     table.insert(files,"no files!")
@@ -82,7 +115,7 @@ end
 
 function playdate.update()
     playdate.timer.updateTimers()
-    gfx.clear(gfx.kColorBlack)
+    gfx.clear(bgColor)
 
     gfx.setImageDrawMode(gfx.kDrawModeNXOR)
     if currentAudio:isPlaying() == true then
@@ -90,11 +123,15 @@ function playdate.update()
     else
         pausedGraphic:draw(0,220)
     end
-    gfx.setImageDrawMode(gfx.kDrawModeFillWhite)
+    gfx.setImageDrawMode(dMColor1)
 
-    if onPlayingScreen == false then
+    -- playdate.drawFPS(0,0)
+
+    if screenMode == 0 then
+        dosFnt:drawTextAligned("musik "..playdate.metadata.version.." delta", 400, 232, kTextAlignment.right, nil)
+
         playingMenuItem:setTitle("now playing")
-        gfx.drawRect(20,13,360,209)
+        gfx.drawRoundRect(20,13,360,209,4)
 
         curRow = fileList:getSelectedRow()
         files = playdate.file.listFiles(dir, false)
@@ -104,10 +141,22 @@ function playdate.update()
             fileList:drawInRect(0, 0, 400, 230)
         end
 
-        if playdate.buttonJustPressed(playdate.kButtonDown) then
-            fileList:selectNextRow(true)
-        elseif playdate.buttonJustPressed(playdate.kButtonUp) then
-            fileList:selectPreviousRow(true)
+        if playdate.buttonJustPressed(playdate.kButtonRight) then
+            local selRow = fileList:getSelectedRow()
+            if selRow <= #files-4 then
+                fileList:setSelectedRow(selRow+4)
+            else
+                fileList:setSelectedRow(#files)
+            end
+            fileList:scrollToRow(fileList:getSelectedRow())
+        elseif playdate.buttonJustPressed(playdate.kButtonLeft) then
+            local selRow = fileList:getSelectedRow()
+            if selRow > 5 then
+                fileList:setSelectedRow(selRow-4)
+            else
+                fileList:setSelectedRow(1)
+            end
+            fileList:scrollToRow(fileList:getSelectedRow())
         elseif playdate.buttonJustPressed(playdate.kButtonA) then
             if playdate.file.isdir(dir..files[curRow]) == true then
                 audioFiles = {}
@@ -125,14 +174,7 @@ function playdate.update()
                 fileList:setNumberOfRows(#files)
             else
                 if dir..files[curRow] == currentFilePath then
-                    -- if currentAudio:isPlaying() == true then
-                    --     lastOffset = currentAudio:getOffset()
-                    --     currentAudio:pause()
-                    -- else
-                    --     currentAudio:setOffset(lastOffset)
-                    --     currentAudio:play()
-                    -- end
-                    onPlayingScreen = true
+                    screenMode = 1
                 else
                     if string.find(files[curRow],"%.mp3") ~= nil or string.find(files[curRow],"%.pda") ~= nil then
                         for i=1,#files do
@@ -146,14 +188,16 @@ function playdate.update()
 
                         if currentAudio:isPlaying() == true then
                             currentAudio:stop()
+                            playdate.setAutoLockDisabled(false)
                         end
 
                         currentAudio:load(dir..files[curRow])
                         audioLen = currentAudio:getLength()
                         currentAudio:play()
+                        playdate.setAutoLockDisabled(true)
 
                         currentFileName = files[curRow]
-                        onPlayingScreen = true
+                        screenMode = 1
                     end
                 end
             end
@@ -168,9 +212,9 @@ function playdate.update()
                 fileList:setSelectedRow(1)
             end
         end
-    else
+    elseif screenMode == 1 then
         playingMenuItem:setTitle("files")
-        gfx.setImageDrawMode(gfx.kDrawModeFillWhite)
+        gfx.setImageDrawMode(dMColor1)
         audioLen = currentAudio:getLength()
         if audioLen ~= nil then
             gfx.drawTextInRect(currentFileName,0,0,400,240,nil,nil,kTextAlignment.center,nil)
@@ -178,8 +222,29 @@ function playdate.update()
         else
             gfx.drawTextInRect("nothing playing",0,220,400,20,nil,nil,kTextAlignment.center,nil)
         end
+        local time = playdate.getTime()
+        if #tostring(time["hour"]) == 1 then
+            time["hour"] = "0"..time["hour"]
+        end
+
+        if #tostring(time["minute"]) == 1 then
+            time["minute"] = "0"..time["minute"]
+        end
+
+        local batteryPercent = playdate.getBatteryPercentage()
+
+        if string.find(batteryPercent,"100.") then
+            batteryPercent = "100"
+        else
+            batteryPercent = string.sub(string.gsub(batteryPercent,"%.",""),1,2)
+        end
+
+        local size = gfx.getTextSize(batteryPercent.."%",dosFnt)
+
+        dosFnt:drawTextAligned(time["hour"]..":"..time["minute"],0,0,400,20,kTextAlignment.left,nil)
+        dosFnt:drawTextAligned(batteryPercent.."%",400-size,0,400,20,kTextAlignment.right,nil)
         gfx.drawTextInRect(modeString,0,220,400,20,nil,nil,kTextAlignment.right,nil)
-        gfx.setImageDrawMode(gfx.kDrawModeCopy)
+        gfx.setImageDrawMode(dMColor2)
 
         if playdate.buttonJustPressed(playdate.kButtonLeft) then
             if currentAudio:getOffset()-5 ~= audioLen then
@@ -204,13 +269,15 @@ function playdate.update()
                 if currentAudio:isPlaying() == true then
                     lastOffset = currentAudio:getOffset()
                     currentAudio:pause()
+                    playdate.setAutoLockDisabled(false)
                 else
                     currentAudio:setOffset(lastOffset)
                     currentAudio:play()
+                    playdate.setAutoLockDisabled(true)
                 end
             end
         elseif playdate.buttonJustPressed(playdate.kButtonB) then
-            onPlayingScreen = false
+            screenMode = 0
         end
     end
 end
@@ -260,6 +327,7 @@ function handleSongEnd()
         currentAudio:play()
     else
         currentFilePath = ""
+        playdate.setAutoLockDisabled(false)
     end
 end
 
@@ -274,6 +342,38 @@ function formatSeconds(seconds)
         secs = string.format("%02.f", math.floor(seconds - hours*3600 - mins *60))
         return mins..":"..secs
     end
+end
+
+
+
+function playdate.downButtonDown()
+    local function timerCallback()
+        if fileList:getSelectedRow() ~= #files then
+            fileList:selectNextRow(true)
+        end
+    end
+    if screenMode == 0 then
+        keyTimer = playdate.timer.keyRepeatTimerWithDelay(300,50,timerCallback)
+    end
+end
+
+function playdate.downButtonUp()
+    keyTimer:remove()
+end
+
+function playdate.upButtonDown()
+    local function timerCallback()
+        if fileList:getSelectedRow() ~= 1 then
+            fileList:selectPreviousRow(true)
+        end
+    end
+    if screenMode == 0 then
+        keyTimer = playdate.timer.keyRepeatTimerWithDelay(300,50,timerCallback)
+    end
+end
+
+function playdate.upButtonUp()
+    keyTimer:remove()
 end
 
 currentAudio:setFinishCallback(handleSongEnd)
