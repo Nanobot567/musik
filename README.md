@@ -5,6 +5,9 @@ a music player for playdate
 
 ## FAQ
 
+### So how do I get this onto my Playdate?
+Visit [this page](https://help.play.date/games/sideloading/) on Playdate's website for information on how to sideload.
+
 ### Why though?
 There are no public music players out for playdate yet (except for Audition, but it wasn't made to be a music player), so I decided to make one.
 

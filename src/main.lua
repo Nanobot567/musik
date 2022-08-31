@@ -177,6 +177,7 @@ function playdate.update()
                     screenMode = 1
                 else
                     if string.find(files[curRow],"%.mp3") ~= nil or string.find(files[curRow],"%.pda") ~= nil then
+                        currentAudio:setRate(1.0)
                         for i=1,#files do
                             if string.find(files[curRow],"%.mp3") ~= nil or string.find(files[curRow],"%.pda") ~= nil then
                                 table.insert(audioFiles,files[i])
@@ -217,8 +218,9 @@ function playdate.update()
         gfx.setImageDrawMode(dMColor1)
         audioLen = currentAudio:getLength()
         if audioLen ~= nil then
-            gfx.drawTextInRect(currentFileName,0,0,400,240,nil,nil,kTextAlignment.center,nil)
+            gfx.drawTextInRect(currentFileName,0,110,400,240,nil,nil,kTextAlignment.center,nil)
             gfx.drawTextInRect((formatSeconds(currentAudio:getOffset()).." / "..formatSeconds(audioLen)),0,220,400,20,nil,nil,kTextAlignment.center,nil)
+            gfx.drawLine(0,10,400,10)
         else
             gfx.drawTextInRect("nothing playing",0,220,400,20,nil,nil,kTextAlignment.center,nil)
         end
@@ -241,8 +243,8 @@ function playdate.update()
 
         local size = gfx.getTextSize(batteryPercent.."%",dosFnt)
 
-        dosFnt:drawTextAligned(time["hour"]..":"..time["minute"],0,0,400,20,kTextAlignment.left,nil)
-        dosFnt:drawTextAligned(batteryPercent.."%",400-size,0,400,20,kTextAlignment.right,nil)
+        dosFnt:drawTextAligned(time["hour"]..":"..time["minute"],1,1,400,20,kTextAlignment.left,nil)
+        dosFnt:drawTextAligned(batteryPercent.."%",401-size,1,400,20,kTextAlignment.right,nil)
         gfx.drawTextInRect(modeString,0,220,400,20,nil,nil,kTextAlignment.right,nil)
         gfx.setImageDrawMode(dMColor2)
 
