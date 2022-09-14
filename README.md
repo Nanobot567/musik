@@ -1,6 +1,8 @@
 # musik
 a music player for playdate
 
+<img src ="https://img.shields.io/tokei/lines/github/nanobot567/musik"><img src="https://img.shields.io/github/downloads/nanobot567/musik/total"><img src="https://img.shields.io/github/v/release/nanobot567/musik">
+
 <a href="https://github.com/nanobot567/musik/releases/latest"><div style="align: center;"><img src="https://github.com/Nanobot567/tAoHtH/blob/main/readme-graphics/Playdate-badge-download.png"></img></div></a>
 
 ## FAQ
@@ -17,24 +19,43 @@ Head to the "issues" tab on Github and file a bug report.
 ### Why aren't my MP3s playing correctly?
 Try dragging them into [Audacity](https://audacityteam.org/) and re-exporting them as MP3s with no metadata.
 
+### My Playdate crashes when I try to skip a song...
+
+Yeah, I don't exactly know what is going on there. I think that it's a buffer underflow issue, so as a temporary solution I have made it so you can only skip a song when it has been playing for 5.5 seconds or more, which should resolve most crashes.
+
 ## Controls
+
+### Cranking
+
+Cranking changes the play rate of the file. Un-docking it shows the current play rate, and docking hides it.
 
 ### When in the "files" screen:
 
 - Up/Down - controls the file selection cursor
+- Right/Left - skip +4 or -4 in the file list
 - A - play song / enter folder
-- B - up folder
+- B - up folder (or if at root of filesystem, you will go to "now playing")
 
 ### When in the "now playing" screen:
 - A - play / pause song
 - B - exit to files screen
 - Right/Left - seek forward / backward 5 seconds (this works best when the song is paused)
+- Up/Down - skip to previous/next song
+    NOTE: skipping to the next song has a chance of causing your playdate to crash. See above for explanation.
 
 In the system menu, there is an options menu item titled "mode". This controls the current playing mode. The options are:
 - `none` - plays the song then stops
 - `shuffle` - plays a random song in the current folder
 - `loop folder` - plays all of the songs in the folder, then loops back to the top and continues
 - `loop one` - loops one song
+
+### Settings
+
+Other settings can be accessed via the "settings" menu item. Here you will find various settings such as toggling dark mode and the 24 hour clock.
+
+- Up/Down - select setting
+- A - toggle setting
+- B - return to last screen
 
 ## Adding songs
 
@@ -43,6 +64,8 @@ To add songs to musik, follow these steps:
 2. Connect your Playdate to your computer and open the `PLAYDATE` drive
 3. Navigate to `/Data/user.*****.musik/music/`
 4. Drag and drop your MP3s / PDAs!
+
+    NOTE: Musik also supports folders, so long file names shouldn't be a problem...? (Let me know if it is and I'll see what I can do)
 
 <!--
 
