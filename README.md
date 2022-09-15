@@ -25,10 +25,6 @@ Yeah, I don't exactly know what is going on there. I think that it's a buffer un
 
 ## Controls
 
-### Cranking
-
-Cranking changes the play rate of the file. Un-docking it shows the current play rate, and docking hides it.
-
 ### When in the "files" screen:
 
 - Up/Down - controls the file selection cursor
