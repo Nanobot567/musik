@@ -3,7 +3,7 @@ import "CoreLibs/ui"
 import "CoreLibs/nineslice"
 import "CoreLibs/timer"
 import "funcs"
-import "crankFuncs"
+-- import "crankFuncs"
 
 local gfx <const> = playdate.graphics
 
@@ -353,7 +353,7 @@ function playdate.update()
         end
     end
 
-    updateCrank()
+    -- updateCrank()
 end
 
 currentAudio:setFinishCallback(handleSongEnd)
