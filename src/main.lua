@@ -185,6 +185,7 @@ function playdate.update()
                     swapScreenMode()
                 else
                     if string.find(files[curRow],"%.mp3") ~= nil or string.find(files[curRow],"%.pda") ~= nil then
+                        audioFiles = {}
                         for i=1,#files do
                             if string.find(files[curRow],"%.mp3") ~= nil or string.find(files[curRow],"%.pda") ~= nil then
                                 table.insert(audioFiles,files[i])
@@ -226,6 +227,14 @@ function playdate.update()
                 table.remove(lastdirs,#lastdirs)
 
                 fileList:setSelectedRow(1)
+            end
+
+            audioFiles = {}
+
+            for i=1,#files do
+                if string.find(files[curRow],"%.mp3") ~= nil or string.find(files[curRow],"%.pda") ~= nil then
+                    table.insert(audioFiles,files[i])
+                end
             end
         end
     elseif screenMode == 1 then
