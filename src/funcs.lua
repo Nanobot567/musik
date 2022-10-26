@@ -5,6 +5,11 @@ import "CoreLibs/timer"
 
 local gfx <const> = playdate.graphics
 
+function lockScreenFunc()
+    locked = true
+    gfx.clear(bgColor)
+end
+
 function swapScreenMode()
     if screenMode == 0 then
         screenMode = 1
@@ -70,9 +75,16 @@ function split(inputstr,sep)
 end
 
 function newSettingsList()
-    return {"dark mode - "..tostring(darkMode),
+    local setList = ({"dark mode - "..tostring(darkMode),
     "24 hour clock - "..tostring(clockMode),
-    "show extra info everywhere - "..tostring(showInfoEverywhere)}
+    "show extra info everywhere - "..tostring(showInfoEverywhere),
+    "lock screen - "..tostring(lockScreen)})
+
+    if lockScreen == true then
+        table.insert(setList,"   lock after "..tostring(lockScreenTime).." minute(s)")
+    end
+    
+    return setList
 end
 
 function drawInfo()
