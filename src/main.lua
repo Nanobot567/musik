@@ -257,8 +257,10 @@ function playdate.update()
                 audioFiles = {}
 
                 for i=1,#files do
-                    if string.find(files[curRow],"%.mp3") ~= nil or string.find(files[curRow],"%.pda") ~= nil then
-                        table.insert(audioFiles,files[i])
+                    if files[curRow] ~= nil then
+                        if string.find(files[curRow],"%.mp3") ~= nil or string.find(files[curRow],"%.pda") ~= nil then
+                            table.insert(audioFiles,files[i])
+                        end
                     end
                 end
             end

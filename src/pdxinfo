@@ -3,5 +3,5 @@ author=nanobot567
 description=simple music player for playdate
 bundleID=com.nano.musik
 version=3.3
-buildNumber=756
+buildNumber=758
 imagePath=SystemAssets
