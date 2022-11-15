@@ -1,3 +1,7 @@
+-- musik by nanobot567. feel free to copy / share this code, just give credit please! :)
+
+-- small text font on card-pressed.png is consolas 9
+
 import "CoreLibs/graphics"
 import "CoreLibs/ui"
 import "CoreLibs/nineslice"
@@ -6,41 +10,62 @@ import "funcs"
 -- import "crankFuncs"
 
 local gfx <const> = playdate.graphics
+local disp <const> = playdate.display
+local timer <const> = playdate.timer
+local fs <const> = playdate.file
 
-playdate.file.mkdir("/music/")
+fs.mkdir("/music/")
+fs.mkdir("/data/")
 dir = "/music/"
 lastdirs = {}
-files = playdate.file.listFiles(dir, false)
+files = fs.listFiles(dir, false)
 
 local playingGraphic = gfx.image.new("img/playing")
 local pausedGraphic = gfx.image.new("img/paused")
+local menuGraphic = gfx.image.new("img/menu")
+dosFnt = gfx.font.new("fnt/dos")
 
-dosFnt = playdate.graphics.font.new("fnt/dos")
+playdate.setMenuImage(menuGraphic)
 
 currentAudio = playdate.sound.fileplayer.new()
 currentFilePath,currentFileName,currentFileDir,modeString = "","","","none"
 lastOffset,currentPos,songToHighlightRow,audioLen,lastScreenMode = 0,1,0,0,0
 darkMode,showInfoEverywhere = true,false
 audioFiles,lastSongDirs,lastSongNames = {},{},{}
-mode = 0 -- 0 is none, 1 is shuffle, 2 is loop folder, 3 is loop song
+mode = 0 -- 0 is none, 1 is shuffle, 2 is loop folder, 3 is loop song, 4 is queue
 screenMode = 0 -- 0 is files, 1 is playing, 2 is settings
 clockMode = false -- true is 24 hr, false is 12 hr
-keyTimer = nil
+upKeyTimer = nil
+downKeyTimer = nil
 lockTimer = nil
 lockScreenTime = 2 -- minutes
 lockScreen = false
 locked = false
+showVersion = true
+screenRoundness = 4
 
-settings = newSettingsList()
+queueList = {}
+queueListDirs = {}
+queueListNames = {}
 
 bgColor = gfx.kColorBlack
 color = gfx.kColorWhite
 dMColor1 = gfx.kDrawModeFillWhite
 dMColor2 = gfx.kDrawModeCopy
 
+for i=1,#files do
+    if findSupportedTypes(files[curRow]) then
+        table.insert(audioFiles,files[i])
+    end
+end
+
 print("-----------------------------------------------------------------------")
 print("Hey there, friend! Have fun debugging / hacking my app! :D - nanobot567")
 print("-----------------------------------------------------------------------")
+
+loadSettings()
+swapColorMode(darkMode)
+settings = newSettingsList()
 
 gfx.setColor(color)
 gfx.clear(bgColor)
@@ -49,14 +74,14 @@ gfx.drawText("no files!",0,0)
 gfx.setImageDrawMode(dMColor2)
 
 fileList = playdate.ui.gridview.new(0, 10)
-fileList.backgroundImage = playdate.graphics.nineSlice.new('img/scrollimg', 20, 23, 92, 20)
+fileList.backgroundImage = gfx.nineSlice.new('img/scrollimg', 1, 1, 10, 10)
 fileList:setNumberOfRows(#files)
 fileList:setScrollDuration(250)
 fileList:setCellPadding(0, 0, 5, 10)
 fileList:setContentInset(24, 24, 13, 11)
 
 function fileList:drawCell(section, row, column, selected, x, y, width, height)
-    local toWrite = files[row]
+    local toWrite = fixFormatting(files[row])
     if files[row] ~= nil then
         if selected then
             gfx.fillRoundRect(x, y, width, 20, 4)
@@ -65,15 +90,17 @@ function fileList:drawCell(section, row, column, selected, x, y, width, height)
             gfx.setImageDrawMode(dMColor1)
         end
 
-        if files[row] == currentFileName and dir == currentFileDir then
-            toWrite = "*"..files[row].."*"
+        if (files[row] == currentFileName and dir == currentFileDir) then
+            toWrite = "*"..toWrite.."*"
+        elseif inTable(queueList, dir..files[row]) then
+            toWrite = "_"..toWrite.."_"
         end
         gfx.drawText(toWrite, x+4, y+2, width, height, nil, "...")
     end
 end
 
 settingsList = playdate.ui.gridview.new(0, 10)
-settingsList.backgroundImage = playdate.graphics.nineSlice.new('img/scrollimg', 20, 23, 92, 20)
+settingsList.backgroundImage = gfx.nineSlice.new('img/scrollimg', 1, 1, 10, 10)
 settingsList:setNumberOfRows(#files)
 settingsList:setScrollDuration(250)
 settingsList:setCellPadding(0, 0, 5, 10)
@@ -90,7 +117,7 @@ function settingsList:drawCell(section, row, column, selected, x, y, width, heig
         end
 
         if settings[row] == currentFileName and dir == currentFileDir then
-            toWrite = "*"..settings[row].."*"
+            toWrite = "*"..toWrite.."*"
         end
         gfx.drawText(toWrite, x+4, y+2, width, height, nil, "...")
     end
@@ -99,7 +126,7 @@ end
 local menu = playdate.getSystemMenu()
 
 local playingMenuItem, error = menu:addMenuItem("now playing", swapScreenMode)
-local modeMenuItem, error = menu:addOptionsMenuItem("mode", {"none","shuffle","loop folder","loop one"}, "none", handleMode)
+modeMenuItem, error = menu:addOptionsMenuItem("mode", {"none","shuffle","loop folder","loop one","queue"}, "none", handleMode)
 local settingsModeMenuItem, error = menu:addMenuItem("settings", function()
     if screenMode ~= 2 then
         lastScreenMode = screenMode
@@ -119,7 +146,7 @@ end
 currentAudio:setRate(1.0)
 
 function playdate.update()
-    playdate.timer.updateTimers()
+    timer.updateTimers()
 
     if locked == false then
         gfx.clear(bgColor)
@@ -132,36 +159,41 @@ function playdate.update()
         end
         gfx.setImageDrawMode(dMColor1)
     else
-        gfx.drawTextInRect("locked! press a and b to unlock...",0,110,400,240,nil,nil,kTextAlignment.center,nil)
-        dosFnt:drawTextAligned("musik "..playdate.metadata.version.." epsilon", 400, 232, kTextAlignment.right, nil)
+        gfx.clear(bgColor)
+        gfx.drawTextInRect("locked! hold a and b to unlock...",0,110,400,240,nil,nil,kTextAlignment.center,nil)
+    end
+
+    if showVersion == true and screenMode ~= 1 then
+        dosFnt:drawTextAligned("musik "..playdate.metadata.version.." zeta", 400, 232, kTextAlignment.right, nil)
     end
     
 
     local btnState = playdate.getButtonState()
 
-    if btnState ~= 0 and lockScreen == true and locked ~= true then
+    if btnState ~= 0 and lockScreen == true and locked == false then
         lockTimer:reset()
-    elseif btnState == 48 and locked == true then
+    end
+    
+    if btnState == 48 and locked == true then
         locked = false
-        lockTimer = playdate.timer.new((lockScreenTime*60)*1000, lockScreenFunc)
+        disp.setRefreshRate(30)
+        lockTimer = timer.new((lockScreenTime*60)*1000, lockScreenFunc)
         playdate.wait(350)
         gfx.clear(bgColor)
     end
 
-    -- playdate.drawFPS(0,0)
     if showInfoEverywhere == true then
         drawInfo()
     end
 
     if locked ~= true then
-        if screenMode == 0 then
+        if screenMode == 0 or screenMode == 3 then
             playingMenuItem:setTitle("now playing")
             settingsModeMenuItem:setTitle("settings")
-            dosFnt:drawTextAligned("musik "..playdate.metadata.version.." epsilon", 400, 232, kTextAlignment.right, nil)
 
-            gfx.drawRoundRect(20,13,360,209,4)
+            gfx.drawRoundRect(20,13,360,209,screenRoundness)
 
-            files = playdate.file.listFiles(dir, false)
+            files = fs.listFiles(dir, false)
             fileList:setNumberOfRows(#files)
             curRow = fileList:getSelectedRow()
 
@@ -169,37 +201,36 @@ function playdate.update()
                 fileList:drawInRect(0, 0, 400, 230)
             end
 
-            if playdate.buttonJustPressed(playdate.kButtonRight) then
-                local selRow = fileList:getSelectedRow()
-                if selRow <= #files-4 then
-                    fileList:setSelectedRow(selRow+4)
+            if playdate.buttonJustPressed("right") then
+                if curRow <= #files-4 then
+                    fileList:setSelectedRow(curRow+4)
                 else
                     fileList:setSelectedRow(#files)
                 end
-                selRow = fileList:getSelectedRow()
                 fileList:scrollToRow(fileList:getSelectedRow())
-            elseif playdate.buttonJustPressed(playdate.kButtonLeft) then
-                local selRow = fileList:getSelectedRow()
-                if selRow > 5 then
-                    fileList:setSelectedRow(selRow-4)
+            elseif playdate.buttonJustPressed("left") then
+                if curRow ~= 1 then
+                    if curRow > 5 then
+                        fileList:setSelectedRow(curRow-4)
+                    else
+                        fileList:setSelectedRow(1)
+                    end
+                    fileList:scrollToRow(fileList:getSelectedRow())
                 else
-                    fileList:setSelectedRow(1)
+                    bAction()
                 end
-                selRow = fileList:getSelectedRow()
-                fileList:scrollToRow(fileList:getSelectedRow())
-            elseif playdate.buttonJustPressed(playdate.kButtonA) then
-                local curRow = fileList:getSelectedRow()
-                if playdate.file.isdir(dir..files[curRow]) == true then
+            elseif playdate.buttonJustPressed("a") then
+                if fs.isdir(dir..files[curRow]) == true then
                     audioFiles = {}
                     fileList:setSelectedRow(1)
 
                     table.insert(lastdirs,dir)
                     dir = dir..files[curRow]
 
-                    files = playdate.file.listFiles(dir, false)
+                    files = fs.listFiles(dir, false)
 
                     for i=1,#files do
-                        if string.find(files[i],"%.mp3") ~= nil or string.find(files[i],"%.pda") ~= nil then
+                        if findSupportedTypes(files[i]) then
                             table.insert(audioFiles,files[i])
                         end
                     end
@@ -209,58 +240,58 @@ function playdate.update()
                     if dir..files[curRow] == currentFilePath then
                         swapScreenMode()
                     else
-                        if string.find(files[curRow],"%.mp3") ~= nil or string.find(files[curRow],"%.pda") ~= nil then
+                        if findSupportedTypes(files[curRow]) then
                             audioFiles = {}
                             for i=1,#files do
-                                if string.find(files[curRow],"%.mp3") ~= nil or string.find(files[curRow],"%.pda") ~= nil then
+                                if findSupportedTypes(files[curRow]) then
                                     table.insert(audioFiles,files[i])
                                 end
                             end
 
                             currentPos = curRow
 
-                            currentAudio:pause()
+                            if screenMode ~= 3 then
+                                currentAudio:pause()
 
-                            table.insert(lastSongDirs,currentFileDir)
-                            table.insert(lastSongNames,currentFileName)
+                                table.insert(lastSongDirs,currentFileDir)
+                                table.insert(lastSongNames,currentFileName)
 
-                            currentAudio:load(dir..files[curRow])
+                                currentAudio:load(dir..files[curRow])
 
-                            audioLen = currentAudio:getLength()
-                            playdate.setAutoLockDisabled(true)
+                                audioLen = currentAudio:getLength()
+                                playdate.setAutoLockDisabled(true)
 
-                            currentFileName = files[curRow]
-                            currentFileDir = dir
-                            currentFilePath = dir..files[curRow]
+                                currentFileName = files[curRow]
+                                currentFileDir = dir
+                                currentFilePath = dir..files[curRow]
 
-                            currentAudio:setOffset(0)
-                            currentAudio:play()
+                                currentAudio:setRate(1.0)
+                                currentAudio:setOffset(0)
+                                currentAudio:play()
 
-                            swapScreenMode()
+                                swapScreenMode()
+                            else
+                                if files[curRow] == ".." then
+                                    bAction()
+                                else
+                                    table.insert(queueList, dir..files[curRow])
+                                    table.insert(queueListDirs, dir)
+                                    table.insert(queueListNames, files[curRow])
+                                end
+                            end
                         end
                     end
                 end
-            elseif playdate.buttonJustPressed(playdate.kButtonB) then
-                curRow = fileList:getSelectedRow()
-
-                if dir == "/music/" then
-                    swapScreenMode()
+            elseif playdate.buttonJustPressed("b") then
+                if screenMode ~= 3 then
+                    bAction()
                 else
-                    dir = lastdirs[#lastdirs]
-                    files = playdate.file.listFiles(dir, false)
-
-                    table.remove(lastdirs,#lastdirs)
-
-                    fileList:setSelectedRow(1)
-                end
-
-                audioFiles = {}
-
-                for i=1,#files do
-                    if files[curRow] ~= nil then
-                        if string.find(files[curRow],"%.mp3") ~= nil or string.find(files[curRow],"%.pda") ~= nil then
-                            table.insert(audioFiles,files[i])
-                        end
+                    if inTable(queueList, dir..files[curRow]) then
+                        table.remove(queueList, indexOf(queueList, dir..files[curRow]))
+                        table.remove(queueListDirs, indexOf(queueList, dir))
+                        table.remove(queueListNames, indexOf(queueListNames, files[curRow]))
+                    else
+                        bAction()
                     end
                 end
             end
@@ -270,28 +301,30 @@ function playdate.update()
             gfx.setImageDrawMode(dMColor1)
             audioLen = currentAudio:getLength()
             if audioLen ~= nil then
-                gfx.drawTextInRect(currentFileName,0,110,400,240,nil,nil,kTextAlignment.center,nil)
+                gfx.drawTextInRect(fixFormatting(currentFileName),0,110,400,240,nil,nil,kTextAlignment.center,nil)
                 gfx.drawTextInRect((formatSeconds(currentAudio:getOffset()).." / "..formatSeconds(audioLen)),0,220,400,20,nil,nil,kTextAlignment.center,nil)
             else
                 gfx.drawTextInRect("nothing playing",0,220,400,20,nil,nil,kTextAlignment.center,nil)
             end
 
             gfx.drawLine(0,10,400,10)
-            gfx.drawTextInRect(modeString,0,220,400,20,nil,nil,kTextAlignment.right,nil)
+            gfx.drawTextInRect(modeString,0,220,398,20,nil,nil,kTextAlignment.right,nil)
 
             if showInfoEverywhere == false then
                 drawInfo()
             end
 
-            if playdate.buttonJustPressed(playdate.kButtonLeft) then
-                if currentAudio:getOffset()-5 ~= audioLen then
+            if playdate.buttonJustPressed("left") then
+                if currentAudio:getOffset()-5 > 0 then
                     lastOffset = currentAudio:getOffset()
                     if audioLen ~= nil then
                         currentAudio:setOffset(lastOffset-5)
                         lastOffset = currentAudio:getOffset()
                     end
+                else
+                    currentAudio:setOffset(0)
                 end
-            elseif playdate.buttonJustPressed(playdate.kButtonRight) then
+            elseif playdate.buttonJustPressed("right") then
                 if currentAudio:getOffset()+5 ~= audioLen then
                     lastOffset = currentAudio:getOffset()
                     if audioLen ~= nil then
@@ -299,7 +332,7 @@ function playdate.update()
                         lastOffset = currentAudio:getOffset()
                     end
                 end
-            elseif playdate.buttonJustPressed(playdate.kButtonUp) then
+            elseif playdate.buttonJustPressed("up") then
                 if currentAudio:getOffset() <= 1 then
                     if lastSongDirs[#lastSongDirs] ~= "" then
                         currentAudio:pause()
@@ -320,13 +353,13 @@ function playdate.update()
                 end
 
                 
-            elseif playdate.buttonJustPressed(playdate.kButtonDown) then
+            elseif playdate.buttonJustPressed("down") then
                 if currentAudio:getOffset() > 5.5 then
-                    currentAudio:stop()
+                    handleSongEnd()
                 end
             end
 
-            if playdate.buttonJustPressed(playdate.kButtonA) then
+            if playdate.buttonJustPressed("a") then
                 if audioLen ~= nil then
                     if currentAudio:isPlaying() == true then
                         lastOffset = currentAudio:getOffset()
@@ -338,15 +371,13 @@ function playdate.update()
                         playdate.setAutoLockDisabled(true)
                     end
                 end
-            elseif playdate.buttonJustPressed(playdate.kButtonB) then
+            elseif playdate.buttonJustPressed("b") then
                 swapScreenMode()
             end
         elseif screenMode == 2 then
-            dosFnt:drawTextAligned("musik "..playdate.metadata.version.." epsilon", 400, 232, kTextAlignment.right, nil)
-
             playingMenuItem:setTitle("files")
             settingsModeMenuItem:setTitle("back")
-            gfx.drawRoundRect(20,13,360,209,4)
+            gfx.drawRoundRect(20,13,360,209,screenRoundness)
 
             curRow = fileList:getSelectedRow()
             settingsList:setNumberOfRows(#settings)
@@ -355,15 +386,15 @@ function playdate.update()
                 settingsList:drawInRect(0, 0, 400, 230)
             end
             
-            if playdate.buttonJustPressed(playdate.kButtonUp) then
+            if playdate.buttonJustPressed("up") then
                 settingsList:selectPreviousRow()
                 settingsList:scrollToRow(settingsList:getSelectedRow())
-            elseif playdate.buttonJustPressed(playdate.kButtonDown) then
+            elseif playdate.buttonJustPressed("down") then
                 settingsList:selectNextRow()
                 settingsList:scrollToRow(settingsList:getSelectedRow())
             end
 
-            if playdate.buttonJustPressed(playdate.kButtonA) then
+            if playdate.buttonJustPressed("a") then
                 local row = settingsList:getSelectedRow()
                 if row == 1 then
                     darkMode = not darkMode
@@ -373,26 +404,41 @@ function playdate.update()
                 elseif row == 3 then
                     showInfoEverywhere = not showInfoEverywhere
                 elseif row == 4 then
+                    showVersion = not showVersion
+                elseif row == 5 then
+                    if screenRoundness >= 1 and screenRoundness ~= 8 then
+                        if screenRoundness == 1 or screenRoundness == 6 then
+                            screenRoundness += 2
+                        end
+                        screenRoundness += 1
+                    elseif screenRoundness == 8 then
+                        screenRoundness = 1
+                    end
+                elseif row == 6 then
                     lockScreen = not lockScreen
                     if lockScreen == true then
-                        lockTimer = playdate.timer.new((lockScreenTime*60)*1000, lockScreenFunc)
+                        lockTimer = timer.new((lockScreenTime*60)*1000, lockScreenFunc)
                     end
-                elseif row == 5 then
+                elseif row == 7 then
                     if lockScreenTime >= 1 and lockScreenTime ~= 5 then
                         lockScreenTime += 1
                     elseif lockScreenTime == 5 then
                         lockScreenTime = 1
                     end
-                    lockTimer = playdate.timer.new((lockScreenTime*60)*1000, lockScreenFunc)
+                    lockTimer = timer.new((lockScreenTime*60)*1000, lockScreenFunc)
                 end
 
                 settings = newSettingsList()
-            elseif playdate.buttonJustPressed(playdate.kButtonB) then
+            elseif playdate.buttonJustPressed("b") then
                 screenMode = lastScreenMode
             end
         end
     end
         -- updateCrank()
+end
+
+function playdate.gameWillTerminate()
+    saveSettings()
 end
 
 currentAudio:setFinishCallback(handleSongEnd)
