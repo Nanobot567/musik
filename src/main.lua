@@ -406,12 +406,13 @@ function playdate.update()
                 elseif row == 4 then
                     showVersion = not showVersion
                 elseif row == 5 then
-                    if screenRoundness >= 1 and screenRoundness ~= 8 then
+                    if screenRoundness >= 1 and screenRoundness < 8 then
                         if screenRoundness == 1 or screenRoundness == 6 then
                             screenRoundness += 2
+                        else
+                            screenRoundness += 1
                         end
-                        screenRoundness += 1
-                    elseif screenRoundness == 8 then
+                    elseif screenRoundness >= 8 then
                         screenRoundness = 1
                     end
                 elseif row == 6 then
