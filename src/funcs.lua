@@ -3,10 +3,10 @@ import "CoreLibs/ui"
 import "CoreLibs/nineslice"
 import "CoreLibs/timer"
 
-local gfx <const> = playdate.graphics
-local disp <const> = playdate.display
-local timer <const> = playdate.timer
-local fs <const> = playdate.file
+local gfx <const> = pd.graphics
+local disp <const> = pd.display
+local timer <const> = pd.timer
+local fs <const> = pd.file
 
 function bAction()
     curRow = fileList:getSelectedRow()
@@ -22,15 +22,18 @@ function bAction()
             table.remove(splitted,#splitted)
         end
 
-        dir = lastdirs[#lastdirs]
-        table.remove(lastdirs,#lastdirs)
+        dir = table.remove(lastdirs,#lastdirs)
 
         files = fs.listFiles(dir, false)
 
-        table.insert(files, 1, "..")
+	if dir ~= "/music/" then
+            table.insert(files, 1, "..")
+	end
 
-        fileList:setSelectedRow(1)
-        fileList:scrollToRow(1)
+	local selRow = table.remove(lastDirPos)
+
+        fileList:setSelectedRow(selRow)
+        fileList:scrollToRow(selRow)
     end
 
     audioFiles = {}
@@ -123,6 +126,9 @@ function swapScreenMode()
                 end
             end
         end
+        if dir ~= "/music/" then
+            table.insert(files, 1, "..")
+	end
     end
 end
 
@@ -189,7 +195,7 @@ function handleMode(str) -- add queue mode
         mode = 4
         currentAudio:setFinishCallback(nil)
         currentAudio:stop()
-        currentAudio = playdate.sound.fileplayer.new()
+        currentAudio = pd.sound.fileplayer.new()
         currentAudio:setFinishCallback(handleSongEnd)
         currentFileName = ""
         currentFileDir = ""
@@ -232,7 +238,7 @@ end
 
 function drawInfo()
     local extension
-    local time = playdate.getTime()
+    local time = pd.getTime()
     if #tostring(time["hour"]) == 1 then
         time["hour"] = "0"..time["hour"]
     end
@@ -247,7 +253,7 @@ function drawInfo()
         time["minute"] = "0"..time["minute"]
     end
 
-    local batteryPercent = playdate.getBatteryPercentage()
+    local batteryPercent = pd.getBatteryPercentage()
 
     if string.find(batteryPercent,"100.") then
         batteryPercent = "100"
@@ -263,6 +269,7 @@ function drawInfo()
 end
 
 function handleSongEnd() -- fix literally everything :) have fun future aiden - i did it past me! aren't you proud of me?
+    print(currentAudio:didUnderrun())
     local justInQueue = false
     audioFiles = {}
     for i=1,#files do
@@ -278,7 +285,7 @@ function handleSongEnd() -- fix literally everything :) have fun future aiden - 
             currentPos = 1
         end
         if currentFileName == audioFiles[#audioFiles] then
-            if not playdate.buttonIsPressed("a") then
+            if not pd.buttonIsPressed("a") then
                 if fs.isdir(dir..audioFiles[1]) == false then
                     currentFileName = audioFiles[1]
                     currentAudio:load(dir..audioFiles[1])
@@ -305,7 +312,7 @@ function handleSongEnd() -- fix literally everything :) have fun future aiden - 
         currentFileName = audioFiles[randthing]
         currentAudio:load(dir..audioFiles[randthing])
     elseif mode == 0 then
-        currentAudio = playdate.sound.fileplayer.new()
+        currentAudio = pd.sound.fileplayer.new()
         currentAudio:setFinishCallback(handleSongEnd)
         currentFileName = ""
         currentFileDir = ""
@@ -353,7 +360,7 @@ function handleSongEnd() -- fix literally everything :) have fun future aiden - 
         currentAudio:play()
     else
         currentFilePath = ""
-        playdate.setAutoLockDisabled(false)
+        pd.setAutoLockDisabled(false)
     end
 end
 
@@ -370,7 +377,7 @@ function formatSeconds(seconds)
     end
 end
 
-function playdate.downButtonDown()
+function pd.downButtonDown()
     local function timerCallback()
         if fileList:getSelectedRow() ~= #files then
             fileList:selectNextRow(true)
@@ -381,13 +388,13 @@ function playdate.downButtonDown()
     end
 end
 
-function playdate.downButtonUp()
+function pd.downButtonUp()
     if screenMode == 0 or screenMode == 3 then
         downKeyTimer:remove()
     end
 end
 
-function playdate.upButtonDown()
+function pd.upButtonDown()
     local function timerCallback()
         if fileList:getSelectedRow() ~= 1 then
             fileList:selectPreviousRow(true)
@@ -398,7 +405,7 @@ function playdate.upButtonDown()
     end
 end
 
-function playdate.upButtonUp()
+function pd.upButtonUp()
     if screenMode == 0 or screenMode == 3 then
         upKeyTimer:remove()
     end

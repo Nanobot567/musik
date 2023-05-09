@@ -2,6 +2,8 @@
 
 -- small text font on card-pressed.png is consolas 9
 
+pd = playdate
+
 import "CoreLibs/graphics"
 import "CoreLibs/ui"
 import "CoreLibs/nineslice"
@@ -9,10 +11,10 @@ import "CoreLibs/timer"
 import "funcs"
 -- import "crankFuncs"
 
-local gfx <const> = playdate.graphics
-local disp <const> = playdate.display
-local timer <const> = playdate.timer
-local fs <const> = playdate.file
+local gfx <const> = pd.graphics
+local disp <const> = pd.display
+local timer <const> = pd.timer
+local fs <const> = pd.file
 
 fs.mkdir("/music/")
 fs.mkdir("/data/")
@@ -25,13 +27,14 @@ local pausedGraphic = gfx.image.new("img/paused")
 local menuGraphic = gfx.image.new("img/menu")
 dosFnt = gfx.font.new("fnt/dos")
 
-playdate.setMenuImage(menuGraphic)
+pd.setMenuImage(menuGraphic)
 
-currentAudio = playdate.sound.fileplayer.new()
+currentAudio = pd.sound.fileplayer.new()
 currentFilePath,currentFileName,currentFileDir,modeString = "","","","none"
 lastOffset,currentPos,songToHighlightRow,audioLen,lastScreenMode = 0,1,0,0,0
 darkMode,showInfoEverywhere = true,false
 audioFiles,lastSongDirs,lastSongNames = {},{},{}
+lastDirPos = {1}
 mode = 0 -- 0 is none, 1 is shuffle, 2 is loop folder, 3 is loop song, 4 is queue
 screenMode = 0 -- 0 is files, 1 is playing, 2 is settings
 clockMode = false -- true is 24 hr, false is 12 hr
@@ -73,8 +76,8 @@ gfx.setImageDrawMode(dMColor1)
 gfx.drawText("no files!",0,0)
 gfx.setImageDrawMode(dMColor2)
 
-fileList = playdate.ui.gridview.new(0, 10)
-fileList.backgroundImage = gfx.nineSlice.new('img/scrollimg', 1, 1, 10, 10)
+fileList = pd.ui.gridview.new(0, 10)
+fileList.backgroundImage = gfx.image.new(1,1,gfx.kColorBlack)
 fileList:setNumberOfRows(#files)
 fileList:setScrollDuration(250)
 fileList:setCellPadding(0, 0, 5, 10)
@@ -99,8 +102,8 @@ function fileList:drawCell(section, row, column, selected, x, y, width, height)
     end
 end
 
-settingsList = playdate.ui.gridview.new(0, 10)
-settingsList.backgroundImage = gfx.nineSlice.new('img/scrollimg', 1, 1, 10, 10)
+settingsList = pd.ui.gridview.new(0, 10)
+settingsList.backgroundImage = gfx.image.new(1,1,gfx.kColorBlack)
 settingsList:setNumberOfRows(#files)
 settingsList:setScrollDuration(250)
 settingsList:setCellPadding(0, 0, 5, 10)
@@ -123,7 +126,7 @@ function settingsList:drawCell(section, row, column, selected, x, y, width, heig
     end
 end
 
-local menu = playdate.getSystemMenu()
+local menu = pd.getSystemMenu()
 
 local playingMenuItem, error = menu:addMenuItem("now playing", swapScreenMode)
 modeMenuItem, error = menu:addOptionsMenuItem("mode", {"none","shuffle","loop folder","loop one","queue"}, "none", handleMode)
@@ -140,35 +143,26 @@ end)
 
 if files[1] == nil then
     table.insert(files,"no files!")
-    playdate.stop()
+    pd.stop()
 end
 
 currentAudio:setRate(1.0)
 
-function playdate.update()
+files = fs.listFiles(dir, false)
+
+function pd.update()
     timer.updateTimers()
+    gfx.clear(bgColor)
 
-    if locked == false then
-        gfx.clear(bgColor)
-
-        gfx.setImageDrawMode(gfx.kDrawModeNXOR)
-        if currentAudio:isPlaying() == true then
-            playingGraphic:draw(0,220)
-        else
-            pausedGraphic:draw(0,220)
-        end
-        gfx.setImageDrawMode(dMColor1)
-    else
-        gfx.clear(bgColor)
+    if locked == true then
         gfx.drawTextInRect("locked! hold a and b to unlock...",0,110,400,240,nil,nil,kTextAlignment.center,nil)
     end
 
     if showVersion == true and screenMode ~= 1 then
-        dosFnt:drawTextAligned("musik "..playdate.metadata.version.." zeta", 400, 232, kTextAlignment.right, nil)
+        dosFnt:drawTextAligned("musik "..pd.metadata.version.." zeta", 400, 232, kTextAlignment.right, nil)
     end
-    
 
-    local btnState = playdate.getButtonState()
+    local btnState = pd.getButtonState()
 
     if btnState ~= 0 and lockScreen == true and locked == false then
         lockTimer:reset()
@@ -178,7 +172,7 @@ function playdate.update()
         locked = false
         disp.setRefreshRate(30)
         lockTimer = timer.new((lockScreenTime*60)*1000, lockScreenFunc)
-        playdate.wait(350)
+        pd.wait(350)
         gfx.clear(bgColor)
     end
 
@@ -191,9 +185,6 @@ function playdate.update()
             playingMenuItem:setTitle("now playing")
             settingsModeMenuItem:setTitle("settings")
 
-            gfx.drawRoundRect(20,13,360,209,screenRoundness)
-
-            files = fs.listFiles(dir, false)
             fileList:setNumberOfRows(#files)
             curRow = fileList:getSelectedRow()
 
@@ -201,14 +192,16 @@ function playdate.update()
                 fileList:drawInRect(0, 0, 400, 230)
             end
 
-            if playdate.buttonJustPressed("right") then
+            gfx.drawRoundRect(20,13,360,209,screenRoundness)
+
+            if pd.buttonJustPressed("right") then
                 if curRow <= #files-4 then
                     fileList:setSelectedRow(curRow+4)
                 else
                     fileList:setSelectedRow(#files)
                 end
                 fileList:scrollToRow(fileList:getSelectedRow())
-            elseif playdate.buttonJustPressed("left") then
+            elseif pd.buttonJustPressed("left") then
                 if curRow ~= 1 then
                     if curRow > 5 then
                         fileList:setSelectedRow(curRow-4)
@@ -219,10 +212,14 @@ function playdate.update()
                 else
                     bAction()
                 end
-            elseif playdate.buttonJustPressed("a") then
-                if fs.isdir(dir..files[curRow]) == true then
+            elseif pd.buttonJustPressed("a") then
+                if files[curRow] == ".." and curRow == 1 then
+		    bAction()
+	        elseif fs.isdir(dir..files[curRow]) == true then
                     audioFiles = {}
+		    table.insert(lastDirPos, curRow)
                     fileList:setSelectedRow(1)
+		    fileList:scrollToRow(1)
 
                     table.insert(lastdirs,dir)
                     dir = dir..files[curRow]
@@ -234,6 +231,10 @@ function playdate.update()
                             table.insert(audioFiles,files[i])
                         end
                     end
+
+		    if dir ~= "/music/" then
+		    	table.insert(files,1,"..")
+		    end
 
                     fileList:setNumberOfRows(#files)
                 else
@@ -247,7 +248,6 @@ function playdate.update()
                                     table.insert(audioFiles,files[i])
                                 end
                             end
-
                             currentPos = curRow
 
                             if screenMode ~= 3 then
@@ -259,7 +259,7 @@ function playdate.update()
                                 currentAudio:load(dir..files[curRow])
 
                                 audioLen = currentAudio:getLength()
-                                playdate.setAutoLockDisabled(true)
+                                pd.setAutoLockDisabled(true)
 
                                 currentFileName = files[curRow]
                                 currentFileDir = dir
@@ -271,18 +271,14 @@ function playdate.update()
 
                                 swapScreenMode()
                             else
-                                if files[curRow] == ".." then
-                                    bAction()
-                                else
-                                    table.insert(queueList, dir..files[curRow])
-                                    table.insert(queueListDirs, dir)
-                                    table.insert(queueListNames, files[curRow])
-                                end
+                                table.insert(queueList, dir..files[curRow])
+                                table.insert(queueListDirs, dir)
+                                table.insert(queueListNames, files[curRow])
                             end
                         end
                     end
                 end
-            elseif playdate.buttonJustPressed("b") then
+            elseif pd.buttonJustPressed("b") then
                 if screenMode ~= 3 then
                     bAction()
                 else
@@ -314,7 +310,7 @@ function playdate.update()
                 drawInfo()
             end
 
-            if playdate.buttonJustPressed("left") then
+            if pd.buttonJustPressed("left") then
                 if currentAudio:getOffset()-5 > 0 then
                     lastOffset = currentAudio:getOffset()
                     if audioLen ~= nil then
@@ -324,7 +320,7 @@ function playdate.update()
                 else
                     currentAudio:setOffset(0)
                 end
-            elseif playdate.buttonJustPressed("right") then
+            elseif pd.buttonJustPressed("right") then
                 if currentAudio:getOffset()+5 ~= audioLen then
                     lastOffset = currentAudio:getOffset()
                     if audioLen ~= nil then
@@ -332,7 +328,7 @@ function playdate.update()
                         lastOffset = currentAudio:getOffset()
                     end
                 end
-            elseif playdate.buttonJustPressed("up") then
+            elseif pd.buttonJustPressed("up") then
                 if currentAudio:getOffset() <= 1 then
                     if lastSongDirs[#lastSongDirs] ~= "" then
                         currentAudio:pause()
@@ -353,25 +349,25 @@ function playdate.update()
                 end
 
                 
-            elseif playdate.buttonJustPressed("down") then
+            elseif pd.buttonJustPressed("down") then
                 if currentAudio:getOffset() > 5.5 then
                     handleSongEnd()
                 end
             end
 
-            if playdate.buttonJustPressed("a") then
+            if pd.buttonJustPressed("a") then
                 if audioLen ~= nil then
                     if currentAudio:isPlaying() == true then
                         lastOffset = currentAudio:getOffset()
                         currentAudio:pause()
-                        playdate.setAutoLockDisabled(false)
+                        pd.setAutoLockDisabled(false)
                     else
                         currentAudio:setOffset(lastOffset)
                         currentAudio:play()
-                        playdate.setAutoLockDisabled(true)
+                        pd.setAutoLockDisabled(true)
                     end
                 end
-            elseif playdate.buttonJustPressed("b") then
+            elseif pd.buttonJustPressed("b") then
                 swapScreenMode()
             end
         elseif screenMode == 2 then
@@ -385,16 +381,18 @@ function playdate.update()
             if settingsList.needsDisplay == true then
                 settingsList:drawInRect(0, 0, 400, 230)
             end
-            
-            if playdate.buttonJustPressed("up") then
+
+            gfx.drawRoundRect(20,13,360,209,screenRoundness)
+
+            if pd.buttonJustPressed("up") then
                 settingsList:selectPreviousRow()
                 settingsList:scrollToRow(settingsList:getSelectedRow())
-            elseif playdate.buttonJustPressed("down") then
+            elseif pd.buttonJustPressed("down") then
                 settingsList:selectNextRow()
                 settingsList:scrollToRow(settingsList:getSelectedRow())
             end
 
-            if playdate.buttonJustPressed("a") then
+            if pd.buttonJustPressed("a") then
                 local row = settingsList:getSelectedRow()
                 if row == 1 then
                     darkMode = not darkMode
@@ -430,15 +428,22 @@ function playdate.update()
                 end
 
                 settings = newSettingsList()
-            elseif playdate.buttonJustPressed("b") then
+            elseif pd.buttonJustPressed("b") then
                 screenMode = lastScreenMode
             end
         end
     end
+    gfx.setImageDrawMode(gfx.kDrawModeNXOR)
+    if currentAudio:isPlaying() == true then
+        playingGraphic:draw(0,220)
+    else
+        pausedGraphic:draw(0,220)
+    end
+    gfx.setImageDrawMode(dMColor1)
         -- updateCrank()
 end
 
-function playdate.gameWillTerminate()
+function pd.gameWillTerminate()
     saveSettings()
 end
 

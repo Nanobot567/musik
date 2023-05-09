@@ -1,5 +1,7 @@
 build.bat
 build-run.bat
+build.sh
+build-run.sh
 pdxinfobuilder.py
 Games/
 musik.pdx/

@@ -15,7 +15,7 @@
 - B - exit to files screen
 - Right/Left - seek forward / backward 5 seconds (this works best when the song is paused)
 - Up/Down - skip to previous/next song
-    NOTE: skipping to the next song has a chance of causing your playdate to crash. See above for explanation.
+    NOTE: skipping to the next song has a chance of causing your playdate to crash. See README for explanation.
 
 In the system menu, there is an options menu item titled "mode". This controls the current playing mode. The options are:
 - `none` - plays the song then stops
