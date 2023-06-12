@@ -48,7 +48,7 @@ Other settings can be accessed via the "settings" menu item. Here you will find 
 To add songs to musik, follow these steps:
 1. Put your Playdate into data disk mode (you can do this by opening settings and navigating to `settings / system / reboot to data disk`)
 2. Connect your Playdate to your computer and open the `PLAYDATE` drive
-3. Navigate to `/Data/user.*****.musik/music/`
+3. Navigate to `/Data/user.*****.musik/music/` or `/Data/user.*****.com.nano.musik/music/`
 4. Drag and drop your MP3s / PDAs!
 
     NOTE: Musik also supports folders, so long file names shouldn't be a problem...? (Let me know if it is and I'll see what I can do)
