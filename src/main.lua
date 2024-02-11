@@ -129,13 +129,13 @@ local menu = pd.getSystemMenu()
 local playingMenuItem, error = menu:addMenuItem("now playing", swapScreenMode)
 modeMenuItem, error = menu:addOptionsMenuItem("mode", {"none","shuffle","loop folder","loop one","queue"}, "none", handleMode)
 local settingsModeMenuItem, error = menu:addMenuItem("settings", function()
-if screenMode ~= 2 then
-  lastScreenMode = screenMode
-  screenMode = 2
-  settingsList:setSelectedRow(1)
-else
-  screenMode = lastScreenMode
-end
+  if screenMode ~= 2 then
+    lastScreenMode = screenMode
+    screenMode = 2
+    settingsList:setSelectedRow(1)
+  else
+    screenMode = lastScreenMode
+  end
 end)
 
 

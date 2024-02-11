@@ -1,8 +1,3 @@
-import "CoreLibs/graphics"
-import "CoreLibs/ui"
-import "CoreLibs/nineslice"
-import "CoreLibs/timer"
-
 local gfx <const> = pd.graphics
 local disp <const> = pd.display
 local timer <const> = pd.timer
@@ -169,7 +164,10 @@ function loadSettings()
     screenRoundness = tonumber(settings[4])
     lockScreen = settings[5]
     lockScreenTime = tonumber(settings[6])
-    lockTimer = timer.new((lockScreenTime*60)*1000, lockScreenFunc)
+
+    if lockScreen == true then
+      lockTimer = timer.new((lockScreenTime*60)*1000, lockScreenFunc)
+    end
   else
     darkMode = true
     clockMode = false
@@ -177,7 +175,9 @@ function loadSettings()
     lockScreen = false
     screenRoundness = 4
     lockScreenTime = 2
-    lockTimer = timer.new((lockScreenTime*60)*1000, lockScreenFunc)
+    if lockScreen == true then
+      lockTimer = timer.new((lockScreenTime*60)*1000, lockScreenFunc)
+    end
   end
 end
 
