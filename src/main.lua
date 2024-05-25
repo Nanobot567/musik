@@ -4,10 +4,15 @@
 
 pd = playdate
 
+import "CoreLibs/crank"
 import "CoreLibs/graphics"
 import "CoreLibs/ui"
 import "CoreLibs/nineslice"
 import "CoreLibs/timer"
+
+import "utils"
+import "input"
+import "lists"
 import "funcs"
 -- import "crankFuncs"
 
@@ -30,13 +35,13 @@ dosFnt = gfx.font.new("fnt/dos")
 pd.setMenuImage(menuGraphic)
 
 currentAudio = pd.sound.fileplayer.new()
-currentFilePath,currentFileName,currentFileDir,modeString = "","","","none"
-lastOffset,currentPos,songToHighlightRow,audioLen,lastScreenMode = 0,1,0,0,0
-darkMode,showInfoEverywhere = true,false
-audioFiles,lastSongDirs,lastSongNames = {},{},{}
-lastDirPos = {1}
-mode = 0 -- 0 is none, 1 is shuffle, 2 is loop folder, 3 is loop song, 4 is queue
-screenMode = 0 -- 0 is files, 1 is playing, 2 is settings
+currentFilePath, currentFileName, currentFileDir, modeString = "", "", "", "none"
+lastOffset, currentPos, songToHighlightRow, audioLen, lastScreenMode = 0, 1, 0, 0, 0
+darkMode, showInfoEverywhere = true, false
+audioFiles, lastSongDirs, lastSongNames = {}, {}, {}
+lastDirPos = { 1 }
+mode = 0          -- 0 is none, 1 is shuffle, 2 is loop folder, 3 is loop song, 4 is queue
+screenMode = 0    -- 0 is files, 1 is playing, 2 is settings
 clockMode = false -- true is 24 hr, false is 12 hr
 upKeyTimer = nil
 downKeyTimer = nil
@@ -46,6 +51,13 @@ lockScreen = false
 locked = false
 showVersion = true
 screenRoundness = 4
+uiDesign = "new"
+
+updateGetLength = true -- this resets the getLengthVar
+getLengthVar = 0       -- this is conected to getLength()
+saveSongSpot = 0
+saveSongSpot2 = 0
+safeToReset = true
 
 queueList = {}
 queueListDirs = {}
@@ -56,11 +68,13 @@ color = gfx.kColorWhite
 dMColor1 = gfx.kDrawModeFillWhite
 dMColor2 = gfx.kDrawModeCopy
 
-for i=1,#files do
+for i = 1, #files do
   if findSupportedTypes(files[curRow]) then
-    table.insert(audioFiles,files[i])
+    table.insert(audioFiles, files[i])
   end
 end
+
+fileList:setNumberOfRows(#files)
 
 print("-----------------------------------------------------------------------")
 print("Hey there, friend! Have fun debugging / hacking my app! :D - nanobot567")
@@ -72,62 +86,29 @@ settings = newSettingsList()
 
 gfx.setColor(color)
 gfx.clear(bgColor)
-gfx.setImageDrawMode(dMColor1)
-gfx.drawText("no files!",0,0)
-gfx.setImageDrawMode(dMColor2)
 
-fileList = pd.ui.gridview.new(0, 10)
-fileList:setNumberOfRows(#files)
-fileList:setScrollDuration(250)
-fileList:setCellPadding(0, 0, 5, 10)
-fileList:setContentInset(24, 24, 13, 11)
+if files[1] == nil then
+  gfx.setImageDrawMode(dMColor1)
+  gfx.drawTextAligned("no files found!", 200, 10, kTextAlignment.center) -- updated the txt
+  gfx.drawTextAligned("scan the code to view musik's documentation.", 200, 35, kTextAlignment.center)
 
-function fileList:drawCell(section, row, column, selected, x, y, width, height)
-  local toWrite = fixFormatting(files[row])
-  if files[row] ~= nil then
-    if selected then
-      gfx.fillRoundRect(x, y, width, 20, 4)
-      gfx.setImageDrawMode(dMColor2)
-    else
-      gfx.setImageDrawMode(dMColor1)
-    end
+  gfx.setImageDrawMode(gfx.kDrawModeNXOR) -- add a QR code to the add audio part of the GitHub repo info thing
+  local addSongsQRImg = gfx.image.new("img/addSongsQR")
+    assert(addSongsQRImg)
 
-    if (files[row] == currentFileName and dir == currentFileDir) then
-      toWrite = "*"..toWrite.."*"
-    elseif inTable(queueList, dir..files[row]) then
-      toWrite = "_"..toWrite.."_"
-    end
-    gfx.drawText(toWrite, x+4, y+2, width, height, nil, "...")
-  end
-end
+    addSongsQRImg:draw(120,65)
 
-settingsList = pd.ui.gridview.new(0, 10)
-settingsList:setNumberOfRows(#files)
-settingsList:setScrollDuration(250)
-settingsList:setCellPadding(0, 0, 5, 10)
-settingsList:setContentInset(24, 24, 13, 11)
+  gfx.setImageDrawMode(dMColor2)
 
-function settingsList:drawCell(section, row, column, selected, x, y, width, height)
-  local toWrite = settings[row]
-  if settings[row] ~= nil then
-    if selected then
-      gfx.fillRoundRect(x, y, width, 20, 4)
-      gfx.setImageDrawMode(dMColor2)
-    else
-      gfx.setImageDrawMode(dMColor1)
-    end
-
-    if settings[row] == currentFileName and dir == currentFileDir then
-      toWrite = "*"..toWrite.."*"
-    end
-    gfx.drawText(toWrite, x+4, y+2, width, height, nil, "...")
-  end
+  table.insert(files,"no files!")
+  pd.stop()
 end
 
 local menu = pd.getSystemMenu()
 
 local playingMenuItem, error = menu:addMenuItem("now playing", swapScreenMode)
-modeMenuItem, error = menu:addOptionsMenuItem("mode", {"none","shuffle","loop folder","loop one","queue"}, "none", handleMode)
+modeMenuItem, error = menu:addOptionsMenuItem("mode", { "none", "shuffle", "loop folder", "loop one", "queue" }, "none",
+  handleMode)
 local settingsModeMenuItem, error = menu:addMenuItem("settings", function()
   if screenMode ~= 2 then
     lastScreenMode = screenMode
@@ -138,12 +119,6 @@ local settingsModeMenuItem, error = menu:addMenuItem("settings", function()
   end
 end)
 
-
-if files[1] == nil then
-  table.insert(files,"no files!")
-  pd.stop()
-end
-
 currentAudio:setRate(1.0)
 
 files = fs.listFiles(dir, false)
@@ -152,24 +127,49 @@ function pd.update()
   timer.updateTimers()
   gfx.clear(bgColor)
 
+  if currentAudio:getLength() ~= nil then           -- if its not nil then go ahead
+    if getLengthVar < currentAudio:getLength() then -- always take the higher getLength() and show that
+      getLengthVar = currentAudio:getLength()
+    end
+
+    if currentAudio:getOffset() >= (getLengthVar * .9) then -- if the song is at or past 90% switch to actual length estimate after it has worked out its kinks
+      getLengthVar = currentAudio:getLength()
+    end
+
+    if updateGetLength == true then -- reset var for next songs 
+      getLengthVar = 1
+      updateGetLength = false
+    end
+  end
+
   if locked == true then
-    gfx.drawTextInRect("locked! hold a and b to unlock...",0,110,400,240,nil,nil,kTextAlignment.center,nil)
+    gfx.drawTextInRect("locked! hold a and b to unlock...", 0, 110, 400, 240, nil, nil, kTextAlignment.center, nil)
   end
 
   if showVersion == true and screenMode ~= 1 then
-    dosFnt:drawTextAligned("musik "..pd.metadata.version.." zeta", 400, 232, kTextAlignment.right, nil)
+    local musikTextX, musikTextY, musikTextAlignment = 200, 227, kTextAlignment.center
+
+    if uiDesign == "classic" then
+      musikTextX = 400
+      musikTextY = 232
+      musikTextAlignment = kTextAlignment.right
+    end
+
+    dosFnt:drawTextAligned("musik " .. pd.metadata.version .. " zeta", musikTextX, musikTextY, musikTextAlignment, nil)
   end
 
   local btnState = pd.getButtonState()
 
   if btnState ~= 0 and lockScreen == true and locked == false then
     lockTimer:reset()
+    lockTimer.duration = (lockScreenTime * 60) * 1000
+    lockTimer.timerEndedCallback = lockScreenFunc
   end
 
   if btnState == 48 and locked == true then
     locked = false
     disp.setRefreshRate(30)
-    lockTimer = timer.new((lockScreenTime*60)*1000, lockScreenFunc)
+    lockTimer = timer.new((lockScreenTime * 60) * 1000, lockScreenFunc)
     pd.wait(350)
     gfx.clear(bgColor)
   end
@@ -190,11 +190,11 @@ function pd.update()
         fileList:drawInRect(0, 0, 400, 230)
       end
 
-      gfx.drawRoundRect(20,13,360,209,screenRoundness)
+      gfx.drawRoundRect(20, 13, 360, 209, screenRoundness)
 
       if pd.buttonJustPressed("right") then
-        if curRow <= #files-4 then
-          fileList:setSelectedRow(curRow+4)
+        if curRow <= #files - 4 then
+          fileList:setSelectedRow(curRow + 4)
         else
           fileList:setSelectedRow(#files)
         end
@@ -202,7 +202,7 @@ function pd.update()
       elseif pd.buttonJustPressed("left") then
         if curRow ~= 1 then
           if curRow > 5 then
-            fileList:setSelectedRow(curRow-4)
+            fileList:setSelectedRow(curRow - 4)
           else
             fileList:setSelectedRow(1)
           end
@@ -213,55 +213,58 @@ function pd.update()
       elseif pd.buttonJustPressed("a") then
         if files[curRow] == ".." and curRow == 1 then
           bAction()
-        elseif fs.isdir(dir..files[curRow]) == true then
+        elseif fs.isdir(dir .. files[curRow]) == true then
           audioFiles = {}
           table.insert(lastDirPos, curRow)
           fileList:setSelectedRow(1)
           fileList:scrollToRow(1)
 
-          table.insert(lastdirs,dir)
-          dir = dir..files[curRow]
+          table.insert(lastdirs, dir)
+          dir = dir .. files[curRow]
 
           files = fs.listFiles(dir, false)
 
-          for i=1,#files do
+          for i = 1, #files do
             if findSupportedTypes(files[i]) then
-              table.insert(audioFiles,files[i])
+              table.insert(audioFiles, files[i])
             end
           end
 
           if dir ~= "/music/" then
-            table.insert(files,1,"..")
+            table.insert(files, 1, "..")
           end
 
           fileList:setNumberOfRows(#files)
         else
-          if dir..files[curRow] == currentFilePath then
+          if dir .. files[curRow] == currentFilePath then
             swapScreenMode()
           else
             if findSupportedTypes(files[curRow]) then
               audioFiles = {}
-              for i=1,#files do
+              for i = 1, #files do
                 if findSupportedTypes(files[curRow]) then
-                  table.insert(audioFiles,files[i])
+                  table.insert(audioFiles, files[i])
                 end
               end
               currentPos = curRow
 
               if screenMode ~= 3 then
+                saveSongSpot = 0
+                updateGetLength = true
+
                 currentAudio:pause()
 
-                table.insert(lastSongDirs,currentFileDir)
-                table.insert(lastSongNames,currentFileName)
+                table.insert(lastSongDirs, currentFileDir)
+                table.insert(lastSongNames, currentFileName)
 
-                currentAudio:load(dir..files[curRow])
+                currentAudio:load(dir .. files[curRow])
 
-                audioLen = currentAudio:getLength()
+                audioLen = getLengthVar
                 pd.setAutoLockDisabled(true)
 
                 currentFileName = files[curRow]
                 currentFileDir = dir
-                currentFilePath = dir..files[curRow]
+                currentFilePath = dir .. files[curRow]
 
                 currentAudio:setRate(1.0)
                 currentAudio:setOffset(0)
@@ -269,7 +272,7 @@ function pd.update()
 
                 swapScreenMode()
               else
-                table.insert(queueList, dir..files[curRow])
+                table.insert(queueList, dir .. files[curRow])
                 table.insert(queueListDirs, dir)
                 table.insert(queueListNames, files[curRow])
               end
@@ -280,8 +283,8 @@ function pd.update()
         if screenMode ~= 3 then
           bAction()
         else
-          if inTable(queueList, dir..files[curRow]) then
-            table.remove(queueList, indexOf(queueList, dir..files[curRow]))
+          if inTable(queueList, dir .. files[curRow]) then
+            table.remove(queueList, indexOf(queueList, dir .. files[curRow]))
             table.remove(queueListDirs, indexOf(queueList, dir))
             table.remove(queueListNames, indexOf(queueListNames, files[curRow]))
           else
@@ -289,68 +292,71 @@ function pd.update()
           end
         end
       end
+
+      gfx.setImageDrawMode(gfx.kDrawModeNXOR)
+      if currentAudio:isPlaying() == true then
+        playingGraphic:draw(0, 220)
+      else
+        pausedGraphic:draw(0, 220)
+      end
+      gfx.setImageDrawMode(dMColor1)
     elseif screenMode == 1 then
       playingMenuItem:setTitle("files")
       settingsModeMenuItem:setTitle("settings")
       gfx.setImageDrawMode(dMColor1)
-      audioLen = currentAudio:getLength()
-      if audioLen ~= nil then
-        gfx.drawTextInRect(fixFormatting(currentFileName),0,110,400,240,nil,nil,kTextAlignment.center,nil)
-        gfx.drawTextInRect((formatSeconds(currentAudio:getOffset()).." / "..formatSeconds(audioLen)),0,220,400,20,nil,nil,kTextAlignment.center,nil)
-      else
-        gfx.drawTextInRect("nothing playing",0,220,400,20,nil,nil,kTextAlignment.center,nil)
+
+      local secondsX, secondsY, modeStringX, modeStringY, playingGraphicX, playingGraphicY = 200, 211, 388, 212, 10, 210
+
+      if uiDesign == "classic" then
+        secondsX = 200
+        secondsY = 220
+        modeStringX = 398
+        modeStringY = 220
+        playingGraphicX = 0
+        playingGraphicY = 220
       end
 
-      gfx.drawLine(0,10,400,10)
-      gfx.drawTextInRect(modeString,0,220,398,20,nil,nil,kTextAlignment.right,nil)
+      audioLen = getLengthVar
+      if audioLen ~= nil and audioLen ~= 0 then
+        gfx.drawTextInRect(fixFormatting(currentFileName), 20, 110, 360, 20, nil, "...", kTextAlignment.center)
+        gfx.drawTextAligned((formatSeconds(currentAudio:getOffset()) .. " / " .. formatSeconds(audioLen)), secondsX, secondsY, kTextAlignment.center)
+      else
+        gfx.drawTextAligned("nothing playing", 200, 211, kTextAlignment.center)
+      end
+
+      if uiDesign == "new" then
+        gfx.drawRoundRect(5, 205, 390, 30, screenRoundness)
+      end
+
+      gfx.drawLine(0, 10, 400, 10)
+      gfx.drawTextAligned(modeString, modeStringX, modeStringY, kTextAlignment.right)
 
       if showInfoEverywhere == false then
         drawInfo()
       end
 
-      if pd.buttonJustPressed("left") then
-        if currentAudio:getOffset()-5 > 0 then
-          lastOffset = currentAudio:getOffset()
-          if audioLen ~= nil then
-            currentAudio:setOffset(lastOffset-5)
-            lastOffset = currentAudio:getOffset()
-          end
-        else
-          currentAudio:setOffset(0)
-        end
-      elseif pd.buttonJustPressed("right") then
-        if currentAudio:getOffset()+5 ~= audioLen then
-          lastOffset = currentAudio:getOffset()
-          if audioLen ~= nil then
-            currentAudio:setOffset(lastOffset+5)
-            lastOffset = currentAudio:getOffset()
-          end
-        end
-      elseif pd.buttonJustPressed("up") then
+      if pd.buttonJustPressed("up") or pd.buttonJustPressed("left") then
         if currentAudio:getOffset() <= 1 then
-          if lastSongDirs[#lastSongDirs] ~= "" then
+          if lastSongDirs[#lastSongDirs] ~= "" and #lastSongDirs ~= 0 then
             currentAudio:pause()
-            currentAudio:load(lastSongDirs[#lastSongDirs]..lastSongNames[#lastSongNames])
+            currentAudio:load(lastSongDirs[#lastSongDirs] .. lastSongNames[#lastSongNames])
             currentAudio:setOffset(0)
-            currentFilePath = lastSongDirs[#lastSongDirs]..lastSongNames[#lastSongNames]
+            currentFilePath = lastSongDirs[#lastSongDirs] .. lastSongNames[#lastSongNames]
             currentFileDir = lastSongDirs[#lastSongDirs]
             currentFileName = lastSongNames[#lastSongNames]
 
-            audioLen = currentAudio:getLength()
+            audioLen = getLengthVar
             currentAudio:play()
 
-            table.remove(lastSongDirs,#lastSongDirs)
-            table.remove(lastSongNames,#lastSongNames)
+            table.remove(lastSongDirs, #lastSongDirs)
+            table.remove(lastSongNames, #lastSongNames)
           end
         else
           currentAudio:setOffset(0)
         end
-
-
-      elseif pd.buttonJustPressed("down") then
-        if currentAudio:getOffset() > 5.5 then
-          handleSongEnd()
-        end
+      elseif pd.buttonJustPressed("down") or pd.buttonJustPressed("right") then
+        canGoNext = true
+        actualSongEnd() -- pausing and starting handeled here | changed to actualSongEnd to make sure song ends
       end
 
       if pd.buttonJustPressed("a") then
@@ -368,10 +374,18 @@ function pd.update()
       elseif pd.buttonJustPressed("b") then
         swapScreenMode()
       end
+
+      gfx.setImageDrawMode(gfx.kDrawModeNXOR)
+      if currentAudio:isPlaying() == true then
+        playingGraphic:draw(playingGraphicX, playingGraphicY)
+      else
+        pausedGraphic:draw(playingGraphicX, playingGraphicY)
+      end
+      gfx.setImageDrawMode(dMColor1)
     elseif screenMode == 2 then
       playingMenuItem:setTitle("files")
       settingsModeMenuItem:setTitle("back")
-      gfx.drawRoundRect(20,13,360,209,screenRoundness)
+      gfx.drawRoundRect(20, 13, 360, 209, screenRoundness)
 
       curRow = fileList:getSelectedRow()
       settingsList:setNumberOfRows(#settings)
@@ -380,7 +394,7 @@ function pd.update()
         settingsList:drawInRect(0, 0, 400, 230)
       end
 
-      gfx.drawRoundRect(20,13,360,209,screenRoundness)
+      gfx.drawRoundRect(20, 13, 360, 209, screenRoundness)
 
       if pd.buttonJustPressed("up") then
         settingsList:selectPreviousRow()
@@ -412,33 +426,42 @@ function pd.update()
             screenRoundness = 1
           end
         elseif row == 6 then
-          lockScreen = not lockScreen
-          if lockScreen == true then
-            lockTimer = timer.new((lockScreenTime*60)*1000, lockScreenFunc)
+          if uiDesign == "new" then
+            uiDesign = "classic"
+          else
+            uiDesign = "new"
           end
         elseif row == 7 then
+          lockScreen = not lockScreen
+          if lockScreen == true then
+            lockTimer = timer.new((lockScreenTime * 60) * 1000, lockScreenFunc)
+          end
+        elseif row == 8 then
           if lockScreenTime >= 1 and lockScreenTime ~= 5 then
             lockScreenTime += 1
           elseif lockScreenTime == 5 then
             lockScreenTime = 1
           end
-          lockTimer = timer.new((lockScreenTime*60)*1000, lockScreenFunc)
+          lockTimer = timer.new((lockScreenTime * 60) * 1000, lockScreenFunc)
         end
 
         settings = newSettingsList()
       elseif pd.buttonJustPressed("b") then
         screenMode = lastScreenMode
       end
+
+      if pd.buttonJustPressed("left") or pd.buttonJustPressed("right") or pd.buttonJustPressed("up") or pd.buttonJustPressed("down") or pd.buttonJustPressed("a") or pd.buttonJustPressed("b") then
+        saveSongSpot = currentAudio:getOffset() -- if you press a button save the curnet song play point
+        pd.timer.new(40, function()
+          if safeToReset == true then
+            saveSongSpot2 = saveSongSpot
+          end
+        end)
+      end
     end
   end
-  gfx.setImageDrawMode(gfx.kDrawModeNXOR)
-  if currentAudio:isPlaying() == true then
-    playingGraphic:draw(0,220)
-  else
-    pausedGraphic:draw(0,220)
-  end
-  gfx.setImageDrawMode(dMColor1)
-  -- updateCrank()
+
+  updateCrank()
 end
 
 function pd.gameWillTerminate()

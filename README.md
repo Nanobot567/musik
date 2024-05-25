@@ -11,21 +11,17 @@ a music player for playdate
 Visit [this page](https://help.play.date/games/sideloading/) on Playdate's website for information on how to sideload.
 
 ### Why though?
-When I first created musik, there were no public music players out for playdate (except for Audition, but it wasn't made to be an iPod type music player), so I decided to make one.
+When I first created musik, there were no public music players out for playdate (except for Audition, but it wasn't made to be an iPod type music player), so I decided to make one!
+
+### How do I use this thing???
+
+Check out the [user manual](https://github.com/Nanobot567/musik/blob/main/MANUAL.md)!
 
 ### I just found a bug, where do I report it?
 Head to the "issues" tab on Github and file a bug report.
 
 ### Why aren't my MP3s playing correctly?
 Try dragging them into [Audacity](https://audacityteam.org/) and re-exporting them as MP3s with no metadata.
-
-### My Playdate crashes when I try to skip a song...
-
-Yeah, I don't exactly know what is going on there. I think that it's a buffer underflow issue, so as a temporary solution I have made it so you can only skip a song when it has been playing for 5.5 seconds or more, which should resolve most crashes.
-
-### How do I use this thing???
-
-Check out the [user manual](https://github.com/Nanobot567/musik/blob/main/MANUAL.md)!
 
 <!--
 
