@@ -27,10 +27,12 @@ function bAction()
 
     local selRow = table.remove(lastDirPos)
 
-    if selRow ~= nil then
-      fileList:setSelectedRow(selRow)
-      fileList:scrollToRow(selRow)
+    if selRow == nil then
+      selRow = 1
     end
+
+    fileList:setSelectedRow(selRow)
+    fileList:scrollToRow(selRow)
   end
 
   audioFiles = {}
