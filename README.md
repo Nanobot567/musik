@@ -23,6 +23,12 @@ Head to the "issues" tab on Github and file a bug report.
 ### Why aren't my MP3s playing correctly?
 Try dragging them into [Audacity](https://audacityteam.org/) and re-exporting them as MP3s with no metadata.
 
+### Sometimes an MP3 plays back slower/faster than the rest.
+This in issue with conflicting audio sample rates. To fix this, you can either:
+
+- drag your MP3 into something like [Audacity](https://audacityteam.org/), change the project rate (it should be in the bottom left corner) to 44100 Hz (or the same rate as the rest of your files), then re-export the MP3
+- change the sample rate with ffmpeg: `ffmpeg -i input.mp3 -ar 44100 output.mp3`
+
 <!--
 
 upon a farmer's land
