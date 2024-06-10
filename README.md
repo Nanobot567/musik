@@ -24,9 +24,16 @@ Head to the "issues" tab on Github and file a bug report.
 Try dragging them into [Audacity](https://audacityteam.org/) and re-exporting them as MP3s with no metadata.
 
 ### Sometimes an MP3 plays back slower/faster than the rest.
-This in issue with conflicting audio sample rates. To fix this, you can either:
+If one of your MP3s has a different audio rate than the others, it can play back slower or faster than the others.
 
-- drag your MP3 into something like [Audacity](https://audacityteam.org/), change the project rate (it should be in the bottom left corner) to 44100 Hz (or the same rate as the rest of your files), then re-export the MP3
+To fix this, you can either (for all of your MP3s):
+
+- drag your MP3 into something like [Audacity](https://audacityteam.org/)
+- change the project rate (it should be in the bottom left corner) to 44100 Hz (or whichever you would like)
+- re-export the MP3
+
+or...
+
 - change the sample rate with ffmpeg: `ffmpeg -i input.mp3 -ar 44100 output.mp3`
 
 <!--
