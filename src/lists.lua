@@ -21,7 +21,7 @@ function fileList:drawCell(section, row, column, selected, x, y, width, height)
     elseif inTable(queueList, dir .. files[row]) then
       toWrite = "_" .. toWrite .. "_"
     end
-    gfx.drawText(toWrite, x + 4, y + 2, width, height, nil, "...")
+    gfx.drawText(toWrite, x + 4, y + 2)
   end
 end
 
@@ -43,7 +43,7 @@ function settingsList:drawCell(section, row, column, selected, x, y, width, heig
     if settings[row] == currentFileName and dir == currentFileDir then
       toWrite = "*" .. toWrite .. "*"
     end
-    gfx.drawText(toWrite, x + 4, y + 2, width, height, nil, "...")
+    gfx.drawText(toWrite, x + 4, y + 2)
   end
 end
 
