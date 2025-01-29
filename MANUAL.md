@@ -15,6 +15,8 @@
 - B - exit to files screen
 - (Up / Left) / (Down / Right) - skip to previous/next song
 
+> note: if you would like to change the volume without opening the Playdate menu, hold down `MENU` and press d-pad left or right!
+
 In the system menu, there is an options menu item titled "mode". This controls the current playing mode. The options are:
 - `none` - plays the song then stops
 - `shuffle` - plays a random song in the current folder
