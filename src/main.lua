@@ -15,10 +15,9 @@ import "draw"
 import "audio"
 import "files"
 import "nowplaying"
+import "settings"
 
 import "handler"
-
-import "settings"
 
 import "setup"
 

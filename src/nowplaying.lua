@@ -7,7 +7,7 @@ function nowPlayingScreen.AButtonDown()
 end
 
 function nowPlayingScreen.BButtonDown()
-  handler.swap("files")
+  handler.swap(handler.last)
 end
 
 function nowPlayingScreen.rightButtonDown() -- TODO: scrub when r/l held, update time but don't start playing until button released
@@ -39,12 +39,18 @@ function nowPlayingScreen.update()
     local offset = string.formatSeconds(audio.player:getOffset())
     local len = string.formatSeconds(audio.player:getLength())
 
-    gfx.drawTextInRect(string.normalize(audio.title), 20, 110, 360, 20, nil, "...", kTextAlignment.center)
+    gfx.drawTextInRect(string.normalize(audio.title), 20, 106, 360, 20, nil, "...", kTextAlignment.center)
     gfx.drawTextAligned(offset .. " / " .. len, secondsX, secondsY, kTextAlignment.center)
+  else
+    gfx.drawTextInRect("(no song playing)", 20, 106, 360, 20, nil, "...", kTextAlignment.center)
   end
 
   if settings.settings["newUI"] then
     gfx.drawRoundRect(5, 205, 390, 30, settings.settings["screenRoundness"])
+  end
+
+  if settings.settings["showInfoEverywhere"] then
+    drawInfo()
   end
 
   if audio.player:isPlaying() then

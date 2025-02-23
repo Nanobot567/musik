@@ -25,6 +25,16 @@ function string.split(inputstr, sep)
   return t
 end
 
+function table.getKeys(t)
+  local keys = {}
+
+  for k, v in pairs(t) do
+    table.insert(keys, k)
+  end
+
+  return keys
+end
+
 
 function findSupportedTypes(str)
   local sub = string.sub(str, #str - 3)

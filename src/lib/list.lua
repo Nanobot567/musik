@@ -78,7 +78,7 @@ function PDList:init(properties)
       gfx.setImageDrawMode(otherSelf.textcolor)
     end
 
-    if otherSelf.labels then
+    if #otherSelf.labels ~= 0 then
       gfx.drawText(otherSelf.labels[row], x + 4, y + 2)
     else
       gfx.drawText(otherSelf.listitems[row], x + 4, y + 2)
@@ -115,6 +115,12 @@ function PDList:set(items, preserveLabels, row)
   self.list:setNumberOfRows(#items)
   self.list:setSelectedRow(row)
   self.list:scrollToRow(row)
+end
+
+---set all labels
+---@param labels table
+function PDList:setLabels(labels)
+  self.labels = table.deepcopy(labels)
 end
 
 --- set label at item position index

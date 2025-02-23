@@ -1,13 +1,19 @@
 function drawInfo()
   local time = pd.getTime()
+  local suffix = ""
+
   if #tostring(time["hour"]) == 1 then
     time["hour"] = "0" .. time["hour"]
   end
 
-  if clockMode == false then
+  if settings.settings["clockMode"] == false then
     if tonumber(time["hour"]) > 12 then
       time["hour"] -= 12
+
+      suffix = "PM"
     end
+
+    suffix = "AM"
   end
 
   if #tostring(time["minute"]) == 1 then
@@ -28,7 +34,7 @@ function drawInfo()
   gfx.fillRect(0, 0, 400, musikFont:getHeight())
   gfx.setColor(gfx.kColorBlack)
 
-  musikFont:drawTextAligned(time["hour"] .. ":" .. time["minute"], 1, 1, 400, 20, kTextAlignment.left)
+  musikFont:drawTextAligned(time["hour"] .. ":" .. time["minute"] .. suffix, 1, 1, 400, 20, kTextAlignment.left)
   musikFont:drawTextAligned(batteryPercent .. "%", 401 - w, 1, 400, 20, kTextAlignment.right)
 end
 
