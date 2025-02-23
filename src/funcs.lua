@@ -104,6 +104,12 @@ function loadSettings()
     else
       uiDesign = "new"
     end
+
+    if settings[8] then
+      playPauseGraphicSwap = settings[8]
+    else
+      playPauseGraphicSwap = false
+    end
   else
     darkMode = true
     clockMode = false
@@ -116,6 +122,7 @@ function loadSettings()
     end
 
     uiDesign = "new"
+    playPauseGraphicSwap = false
   end
 end
 
@@ -162,6 +169,7 @@ function newSettingsList()
     "show version - " .. tostring(showVersion),
     "screen roundness - " .. tostring(screenRoundness),
     "ui design - " .. tostring(uiDesign),
+    "swap play graphic with pause graphic - " .. tostring(playPauseGraphicSwap),
     "lock screen - " .. tostring(lockScreen),
   })
 

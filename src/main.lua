@@ -52,6 +52,7 @@ locked = false
 showVersion = true
 screenRoundness = 4
 uiDesign = "new"
+playPauseGraphicSwap = false
 
 updateGetLength = true -- this resets the getLengthVar
 getLengthVar = 0       -- this is conected to getLength()
@@ -294,11 +295,21 @@ function pd.update()
       end
 
       gfx.setImageDrawMode(gfx.kDrawModeNXOR)
-      if currentAudio:isPlaying() == true then
-        playingGraphic:draw(0, 220)
+
+      if not playPauseGraphicSwap then
+        if currentAudio:isPlaying() == true then
+          playingGraphic:draw(0, 220)
+        else
+          pausedGraphic:draw(0, 220)
+        end
       else
-        pausedGraphic:draw(0, 220)
+        if currentAudio:isPlaying() == true then
+          pausedGraphic:draw(0, 220)
+        else
+          playingGraphic:draw(0, 220)
+        end
       end
+
       gfx.setImageDrawMode(dMColor1)
     elseif screenMode == 1 then
       playingMenuItem:setTitle("files")
@@ -376,10 +387,19 @@ function pd.update()
       end
 
       gfx.setImageDrawMode(gfx.kDrawModeNXOR)
-      if currentAudio:isPlaying() == true then
-        playingGraphic:draw(playingGraphicX, playingGraphicY)
+
+      if not playPauseGraphicSwap then
+        if currentAudio:isPlaying() == true then
+          playingGraphic:draw(playingGraphicX, playingGraphicY)
+        else
+          pausedGraphic:draw(playingGraphicX, playingGraphicY)
+        end
       else
-        pausedGraphic:draw(playingGraphicX, playingGraphicY)
+        if currentAudio:isPlaying() == true then
+          pausedGraphic:draw(playingGraphicX, playingGraphicY)
+        else
+          playingGraphic:draw(playingGraphicX, playingGraphicY)
+        end
       end
       gfx.setImageDrawMode(dMColor1)
     elseif screenMode == 2 then
@@ -432,11 +452,13 @@ function pd.update()
             uiDesign = "new"
           end
         elseif row == 7 then
+          playPauseGraphicSwap = not playPauseGraphicSwap
+        elseif row == 8 then
           lockScreen = not lockScreen
           if lockScreen == true then
             lockTimer = timer.new((lockScreenTime * 60) * 1000, lockScreenFunc)
           end
-        elseif row == 8 then
+        elseif row == 9 then
           if lockScreenTime >= 1 and lockScreenTime ~= 5 then
             lockScreenTime += 1
           elseif lockScreenTime == 5 then
