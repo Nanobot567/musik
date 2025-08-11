@@ -3,7 +3,7 @@ a music player for playdate
 
 <img src ="https://img.shields.io/tokei/lines/github/nanobot567/musik"><img src="https://img.shields.io/github/downloads/nanobot567/musik/total"><img src="https://img.shields.io/github/v/release/nanobot567/musik">
 
-<div style="align: center;"><a href="https://github.com/nanobot567/musik/releases/latest"><img src="https://github.com/Nanobot567/tAoHtH/blob/main/readme-graphics/Playdate-badge-download.png"></a></img></div>
+<div style="align: center;"><a href="https://codeberg.org/nanobot567/musik/releases/latest"><img src="https://github.com/Nanobot567/tAoHtH/blob/main/readme-graphics/Playdate-badge-download.png"></a></img></div>
 
 ## FAQ
 
