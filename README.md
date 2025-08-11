@@ -15,7 +15,7 @@ When I first created musik, there were no public music players out for playdate 
 
 ### How do I use this thing???
 
-Check out the [user manual](https://github.com/Nanobot567/musik/blob/main/MANUAL.md)!
+Check out the [user manual](https://codeberg.org/nanobot567/musik/src/branch/main/MANUAL.md)!
 
 ### I just found a bug, where do I report it?
 Head to the "issues" tab on Github and file a bug report.
